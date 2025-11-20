@@ -4,15 +4,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Settings:
-    REDIS_URL = os.getenv("REDIS_URL")
+    REDIS_HOST = os.getenv("REDIS_HOST")
+    REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_USER = os.getenv("REDIS_USER")
+    REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
 
+    APP_ENV = os.getenv("APP_ENV", "development")  # development / production
     DATABASE_URL = os.getenv("DATABASE_URL")
 
     MQTT_HOST = os.getenv("MQTT_HOST")
     MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
-    MQTT_USER = os.getenv("MQTT_USER")
-    MQTT_PASS = os.getenv("MQTT_PASS")
-    MQTT_CLIENT_ID = os.getenv("MQTT_CLIENT_ID")
     MQTT_TOPIC_PREFIX = os.getenv("MQTT_TOPIC_PREFIX")
 
     ALERT_COOLDOWN_SECONDS = int(os.getenv("ALERT_COOLDOWN_SECONDS", "300"))

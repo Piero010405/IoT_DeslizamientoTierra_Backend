@@ -8,3 +8,10 @@ services:
     env_file: .env
     network_mode: host
     restart: unless-stopped
+  
+  sensor_simulator:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    command: python scripts/sensor_data_sender.py
+    network_mode: host

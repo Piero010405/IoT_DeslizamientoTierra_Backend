@@ -27,7 +27,6 @@ class Notifier:
         self.redis.setex(key, self.cooldown, str(time.time()))
 
     def send_email(self, subject, body, recipients=None):
-        # ejemplo Resend: usar su API de emails (POST /emails)
         url = "https://api.resend.com/emails"
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
         payload = {

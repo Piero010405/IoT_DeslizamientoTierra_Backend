@@ -2,12 +2,11 @@
 import redis
 from app.config import settings
 
-
 def create_redis_client():
-    """
-    Devuelve un cliente Redis Cloud basado en REDIS_URL.
-    """
-    return redis.from_url(
-        settings.REDIS_URL,
+    return redis.Redis(
+        host=settings.REDIS_HOST,
+        port=settings.REDIS_PORT,
+        username=settings.REDIS_USER,
+        password=settings.REDIS_PASSWORD,
         decode_responses=True
     )

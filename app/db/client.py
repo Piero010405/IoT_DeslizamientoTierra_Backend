@@ -3,10 +3,18 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
 from app.db.models import Base
+import os
 
-engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+def get_engine():
+    if settings.APP_ENV == "production":
+        return create_engine(settings.DATABASE_URL, pool_pre_ping=True)
+
+    # modo desarrollo → fallback a SQLite local
+    sqlite_path = os.path.join(os.getcwd(), "local_dev.sqlite")
+    return create_engine(f"sqlite:///{sqlite_path}", connect_args={"check_same_thread": False})
+
+engine = get_engine()
+SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 def init_db():
-    # Crea tablas si no existen
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(engine)
