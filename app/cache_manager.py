@@ -1,11 +1,13 @@
 # app/cache_manager.py
 from funcs.funciones_redis import SensorCacheManager
+from app.cache_client import create_redis_client
 
-class CacheManager(SensorCacheManager):
+
+class CloudSensorCacheManager(SensorCacheManager):
+    """
+    Extiende SensorCacheManager para usar SIEMPRE Redis Cloud.
+    Reemplaza el redis_client interno del manager original.
+    """
     def __init__(self):
-        # cargar host/port/cred desde settings en lugar de localhost
-        from app.config import settings
-        super().__init__(host=settings.REDIS_HOST,
-                         port=settings.REDIS_PORT,
-                         db=settings.REDIS_DB)
-        # si tienes REDIS_URL, parseala y usa redis.from_url
+        super().__init__(host="localhost", port=6379, db=0)  # valores dummy
+        self.redis_client = create_redis_client()
