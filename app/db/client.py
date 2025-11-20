@@ -18,3 +18,6 @@ SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 def init_db():
     Base.metadata.create_all(engine)
+
+def get_session():
+    return SessionLocal()

@@ -14,3 +14,10 @@ alerts:
   cooldown_seconds: 300   # 5 minutos
   resend_email_from: "alerts@example.com"
   resend_email_to: ["ops@example.com"]
+
+mqtt:
+  host: "localhost"
+  port: 1883
+  topic_prefix: "sensors/#"
+  user: ""
+  pass: ""

@@ -1,14 +1,18 @@
-# script/sensor_data_sender.py
+# scripts/sensor_data_sender.py
 import json
 import time
 import random
 from datetime import datetime
 import paho.mqtt.client as mqtt
+import os
+from dotenv import load_dotenv
 
+# Cargar variables del archivo .env
+load_dotenv()
 
-MQTT_HOST = "127.0.0.1"
-MQTT_PORT = 1883
-TOPIC = "sensors/data"
+MQTT_HOST = os.getenv("MQTT_HOST", "host.docker.internal")
+MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
+TOPIC = os.getenv("TOPIC", "sensors/data")
 
 
 def gen_random_packet():
@@ -35,6 +39,8 @@ def gen_random_packet():
 
 def main():
     client = mqtt.Client()
+
+    print(f"[MQTT] Conectando a {MQTT_HOST}:{MQTT_PORT} ...")
     client.connect(MQTT_HOST, MQTT_PORT)
     client.loop_start()
 
