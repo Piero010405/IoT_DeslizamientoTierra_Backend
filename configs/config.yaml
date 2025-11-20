@@ -1,0 +1,16 @@
+# reglas de archivado y cache
+archiver:
+  mode: by_time           # options: by_time, by_count
+  threshold_days: 1       # si by_time -> datos anteriores a N días son fríos
+  threshold_hours: 0      # alternativa
+  run_every_minutes: 60   # frecuencia del archiver
+  batch_size: 500
+
+cache:
+  ttl_estado_actual_seconds: 3600
+  ttl_historico_reciente_seconds: 86400
+
+alerts:
+  cooldown_seconds: 300   # 5 minutos
+  resend_email_from: "alerts@example.com"
+  resend_email_to: ["ops@example.com"]
