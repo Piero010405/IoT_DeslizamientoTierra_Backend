@@ -114,7 +114,9 @@ class SensorCacheManager:
         porcentaje: valor de humedad en %
         valor_raw: valor bruto del sensor (0-1024)
         """
-        timestamp = datetime.now().isoformat()
+        now = datetime.now()
+        timestamp = now.isoformat()
+        score = now.timestamp()
 
         estado_key = f"sensor:humedad:{sensor_id}:actual"
         data = {
@@ -137,14 +139,17 @@ class SensorCacheManager:
 
         # Promedios móviles (últimos 10 minutos)
         promedio_key = f"sensor:humedad:{sensor_id}:promedio"
+
         self.redis_client.zadd(
             promedio_key,
-            {timestamp: porcentaje},
+            {timestamp: score},   # score es float UNIX time
             nx=False
         )
+
         # Eliminar registros más antiguos de 10 minutos
-        hace_10_min = (datetime.now() - timedelta(minutes=10)).isoformat()
-        self.redis_client.zremrangebyscore(promedio_key, '-inf', f'({hace_10_min}')
+        hace_10_min = (datetime.now() - timedelta(minutes=10)).timestamp()
+
+        self.redis_client.zremrangebyscore(promedio_key, '-inf', hace_10_min)
         self.redis_client.expire(promedio_key, self.TTL_HISTORICO_RECIENTE)
 
         # Alertas por umbrales

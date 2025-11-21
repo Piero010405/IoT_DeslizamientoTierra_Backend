@@ -71,14 +71,14 @@ class MQTTClient:
                         porcentaje=sample["soil"]["pct"],
                         valor_raw=sample["soil"]["raw"]
                     )
-                except Exception:
-                    logger.error("⚠ Error guardando humedad")
+                except Exception as e:
+                    logger.error(f"⚠ Error guardando humedad → {e}")
 
             # Inclinación
             try:
                 self.cache.guardar_inclinacion(sid, sample["tilt"])
-            except Exception:
-                logger.error("⚠ Error guardando inclinación")
+            except Exception as e:
+                logger.error(f"⚠ Error guardando inclinación → {e}")
 
             # Vibración
             try:
@@ -87,8 +87,8 @@ class MQTTClient:
                     pulse=sample["vib"]["pulse"],
                     hit=sample["vib"]["hit"]
                 )
-            except Exception:
-                logger.error("⚠ Error guardando vibración")
+            except Exception as e:
+                logger.error(f"⚠ Error guardando vibración → {e}")
 
         # ============
         # GUARDAR EN POSTGRES
