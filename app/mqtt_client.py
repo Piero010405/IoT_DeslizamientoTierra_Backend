@@ -126,10 +126,15 @@ class MQTTClient:
         # ============
         try:
             if alerta == 1:
+                # 1) Guardar alerta en Redis
+                self.cache.guardar_alerta(seq, payload["ts"], payload)
+
+                # 2) Enviar email con cooldown}
                 from app.notifier import Notifier
                 Notifier().enqueue_alert(payload)
-        except Exception:
-            logger.error("⚠ Error enviando alerta")
+
+        except Exception as e:
+            logger.error(f"⚠ Error procesando alerta → {e}")
 
     # ============
     # ARRANCAR CLIENTE
