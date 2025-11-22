@@ -11,5 +11,7 @@ services:
       context: .
       dockerfile: deploy/Dockerfile
     command: python scripts/sensor_data_sender.py
-    env_file: .env        # ← OBLIGATORIO
-    restart: unless-stopped
+    env_file: .env
+    restart: "no"
+    deploy:
+      replicas: 0

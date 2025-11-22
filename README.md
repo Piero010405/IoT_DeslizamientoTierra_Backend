@@ -80,7 +80,13 @@ Envía alertas vía Resend
 
 sensor_simulator
 
+## ▶️ 5. Ejecutar el envio de data simulado (opcional)
+
 Ejecuta scripts/sensor_data_sender.py
+
+```bash
+docker compose up sensor_simulator
+```
 
 Envía paquetes JSON cada 2 segundos al broker MQTT
 
