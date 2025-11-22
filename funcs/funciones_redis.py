@@ -66,6 +66,7 @@ class SensorCacheManager:
         self.redis_client.expire(stats_key, self.TTL_HISTORICO_RECIENTE)
 
         return True
+
     # ============ SENSOR DE INCLINACIÓN ============
 
     def guardar_inclinacion(self, sensor_id: str, estado: int):
@@ -169,11 +170,13 @@ class SensorCacheManager:
         key_hist = "sensor:alerta:historico"
         self.redis_client.lpush(key_hist, json.dumps(alerta_data))
         self.redis_client.ltrim(key_hist, 0, 99)
+        self.redis_client.expire(key_hist, self.TTL_HISTORICO_RECIENTE)
 
         # 3) Stats (ZSET)
         key_stats = "sensor:alerta:stats"
         self.redis_client.zadd(key_stats, {json.dumps(alerta_data): score})
         self.redis_client.zremrangebyrank(key_stats, 0, -501)
+        self.redis_client.expire(key_stats, self.TTL_HISTORICO_RECIENTE)
 
         return True
 
