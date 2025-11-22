@@ -23,7 +23,6 @@ class SensorCacheManager:
         # Configuración de TTL (en segundos)
         self.TTL_ESTADO_ACTUAL = 3600  # 1 hora - estado más reciente
         self.TTL_HISTORICO_RECIENTE = 86400  # 24 horas - últimas lecturas
-        self.TTL_ALERTAS_ACTIVAS = 7200  # 2 horas - alertas sin resolver
 
     # ============ SENSOR DE VIBRACIÓN ============
 
@@ -54,10 +53,6 @@ class SensorCacheManager:
         self.redis_client.lpush(historico_key, json.dumps(estado))
         self.redis_client.ltrim(historico_key, 0, 99)  # Mantener solo 100
         self.redis_client.expire(historico_key, self.TTL_HISTORICO_RECIENTE)
-
-        # 3. Si hay hit, generar alerta
-        if hit == 1:
-            self._generar_alerta(sensor_id, 'vibracion', f'Golpe detectado (pulse: {pulse})')
 
         # 4. Estadísticas en tiempo real (usando Sorted Set)
         stats_key = f"sensor:vibracion:{sensor_id}:stats"
@@ -97,12 +92,6 @@ class SensorCacheManager:
         self.redis_client.lpush(historico_key, json.dumps(data))
         self.redis_client.ltrim(historico_key, 0, 99)
         self.redis_client.expire(historico_key, self.TTL_HISTORICO_RECIENTE)
-
-        # Alerta si cambió a inclinado
-        if estado == 1:
-            estado_previo = self.obtener_estado_actual(sensor_id, 'inclinacion')
-            if estado_previo and estado_previo.get('estado') == 0:
-                self._generar_alerta(sensor_id, 'inclinacion', 'Cambio de posición detectado')
 
         return True
 
@@ -152,79 +141,41 @@ class SensorCacheManager:
         self.redis_client.zremrangebyscore(promedio_key, '-inf', hace_10_min)
         self.redis_client.expire(promedio_key, self.TTL_HISTORICO_RECIENTE)
 
-        # Alertas por umbrales
-        if porcentaje > 80:
-            self._generar_alerta(sensor_id, 'humedad', f'Humedad alta: {porcentaje}%')
-        elif porcentaje < 20:
-            self._generar_alerta(sensor_id, 'humedad', f'Humedad baja: {porcentaje}%')
-
         return True
 
-    # ============ GESTIÓN DE ALERTAS ============
+    # ============ ALERTAS ============
 
-    def _generar_alerta(self, sensor_id: str, tipo_sensor: str, mensaje: str):
+    def guardar_alerta(self, seq: int, ts: str, payload: dict):
         """
-        Genera una alerta y la almacena en caché
+        Guarda una alerta generada por ESP32:
+        - último evento
+        - histórico (100 últimos)
+        - stats (ZSET por timestamp UNIX)
         """
-        timestamp = datetime.now().isoformat()
-        alerta_id = f"{sensor_id}:{tipo_sensor}:{int(time.time())}"
+        now = datetime.now()
+        score = now.timestamp()
 
-        alerta = {
-            'id': alerta_id,
-            'sensor_id': sensor_id,
-            'tipo_sensor': tipo_sensor,
-            'mensaje': mensaje,
-            'timestamp': timestamp,
-            'activa': True,
-            'resuelta': False
+        alerta_data = {
+            "seq": seq,
+            "timestamp": ts,
+            "payload": payload
         }
 
-        # Guardar alerta individual
-        alerta_key = f"alerta:{alerta_id}"
-        self.redis_client.setex(
-            alerta_key,
-            self.TTL_ALERTAS_ACTIVAS,
-            json.dumps(alerta)
-        )
+        # 1) Última alerta
+        key_actual = "sensor:alerta:actual"
+        self.redis_client.setex(key_actual, self.TTL_ESTADO_ACTUAL, json.dumps(alerta_data))
 
-        # Agregar a set de alertas activas
-        alertas_activas_key = "alertas:activas"
-        self.redis_client.sadd(alertas_activas_key, alerta_id)
+        # 2) Histórico (lista)
+        key_hist = "sensor:alerta:historico"
+        self.redis_client.lpush(key_hist, json.dumps(alerta_data))
+        self.redis_client.ltrim(key_hist, 0, 99)
 
-        # Publicar en canal Pub/Sub para notificaciones en tiempo real
-        self.redis_client.publish('canal:alertas', json.dumps(alerta))
+        # 3) Stats (ZSET)
+        key_stats = "sensor:alerta:stats"
+        self.redis_client.zadd(key_stats, {json.dumps(alerta_data): score})
+        self.redis_client.zremrangebyrank(key_stats, 0, -501)
 
-        return alerta_id
-
-    def resolver_alerta(self, alerta_id: str):
-        """Marca una alerta como resuelta"""
-        alerta_key = f"alerta:{alerta_id}"
-        alerta_data = self.redis_client.get(alerta_key)
-
-        if alerta_data:
-            alerta = json.loads(alerta_data)
-            alerta['resuelta'] = True
-            alerta['activa'] = False
-            alerta['timestamp_resolucion'] = datetime.now().isoformat()
-
-            self.redis_client.setex(alerta_key, self.TTL_ALERTAS_ACTIVAS, json.dumps(alerta))
-            self.redis_client.srem("alertas:activas", alerta_id)
-
-            return True
-        return False
-
-    def obtener_alertas_activas(self) -> List[Dict]:
-        """Obtiene todas las alertas activas"""
-        alertas_ids = self.redis_client.smembers("alertas:activas")
-        alertas = []
-
-        for alerta_id in alertas_ids:
-            alerta_key = f"alerta:{alerta_id}"
-            alerta_data = self.redis_client.get(alerta_key)
-            if alerta_data:
-                alertas.append(json.loads(alerta_data))
-
-        return alertas
+        return True
 
     # ============ CONSULTAS ============
 
@@ -251,6 +202,15 @@ class SensorCacheManager:
         total = sum(float(score) for _, score in valores)
         return round(total / len(valores), 2)
 
+    def obtener_ultima_alerta(self):
+        data = self.redis_client.get("sensor:alerta:actual")
+        return json.loads(data) if data else None
+
+    def obtener_alertas_recientes(self, limite=50):
+        key = "sensor:alerta:historico"
+        datos = self.redis_client.lrange(key, 0, limite - 1)
+        return [json.loads(d) for d in datos]
+
     def obtener_dashboard(self) -> Dict:
         """
         Obtiene un resumen general de todos los sensores para dashboard
@@ -261,9 +221,7 @@ class SensorCacheManager:
                 'vibracion': [],
                 'inclinacion': [],
                 'humedad': []
-            },
-            'alertas_activas': self.obtener_alertas_activas(),
-            'total_alertas': len(self.obtener_alertas_activas())
+            }
         }
 
         # Buscar todos los sensores activos
@@ -279,26 +237,6 @@ class SensorCacheManager:
 
         return dashboard
 
-    # ============ MANTENIMIENTO ============
-
-    def limpiar_datos_expirados(self):
-        """Limpieza manual de datos expirados (Redis lo hace automáticamente, pero esto es un respaldo)"""
-        # Esta función es más para limpieza específica si es necesario
-        alertas_resueltas = []
-        for alerta_id in self.redis_client.smembers("alertas:activas"):
-            alerta_key = f"alerta:{alerta_id}"
-            alerta_data = self.redis_client.get(alerta_key)
-            if alerta_data:
-                alerta = json.loads(alerta_data)
-                if alerta.get('resuelta'):
-                    alertas_resueltas.append(alerta_id)
-        
-        if alertas_resueltas:
-            self.redis_client.srem("alertas:activas", *alertas_resueltas)
-        
-        return len(alertas_resueltas)
-
-
 # ============ EJEMPLO DE USO ============
 
 if __name__ == "__main__":
@@ -310,18 +248,18 @@ if __name__ == "__main__":
     # 1. Sensor de vibración
     print("1. Guardando datos de vibración...")
     cache.guardar_vibracion("sensor_vib_001", pulse=150, hit=0)
-    cache.guardar_vibracion("sensor_vib_001", pulse=180, hit=1)  # Genera alerta
+    cache.guardar_vibracion("sensor_vib_001", pulse=180, hit=1)
 
     # 2. Sensor de inclinación
     print("2. Guardando datos de inclinación...")
     cache.guardar_inclinacion("sensor_inc_001", estado=0)
     time.sleep(0.1)
-    cache.guardar_inclinacion("sensor_inc_001", estado=1)  # Genera alerta
+    cache.guardar_inclinacion("sensor_inc_001", estado=1)
 
     # 3. Sensor de humedad
     print("3. Guardando datos de humedad...")
     cache.guardar_humedad("sensor_hum_001", porcentaje=45.5, valor_raw=512)
-    cache.guardar_humedad("sensor_hum_001", porcentaje=85.2, valor_raw=920)  # Genera alerta
+    cache.guardar_humedad("sensor_hum_001", porcentaje=85.2, valor_raw=920)
 
     # Consultar estado actual
     print("\n=== Estados Actuales ===")
@@ -338,16 +276,9 @@ if __name__ == "__main__":
     promedio = cache.obtener_promedio_humedad("sensor_hum_001")
     print(f"\nPromedio humedad (últimos 10 min): {promedio}%")
 
-    # Ver alertas activas
-    print("\n=== Alertas Activas ===")
-    alertas = cache.obtener_alertas_activas()
-    for alerta in alertas:
-        print(f"- [{alerta['tipo_sensor']}] {alerta['mensaje']}")
-
     # Dashboard completo
     print("\n=== Dashboard Completo ===")
     dashboard = cache.obtener_dashboard()
-    print(f"Total de alertas activas: {dashboard['total_alertas']}")
     print(f"Sensores de vibración activos: {len(dashboard['sensores']['vibracion'])}")
     print(f"Sensores de inclinación activos: {len(dashboard['sensores']['inclinacion'])}")
     print(f"Sensores de humedad activos: {len(dashboard['sensores']['humedad'])}")
