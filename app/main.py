@@ -3,7 +3,6 @@ import time
 import logging
 from app.config import settings
 from app.mqtt_client import MQTTClient
-from app.archiver import Archiver
 from app.db.client import init_db
 
 def main():
@@ -13,10 +12,7 @@ def main():
     init_db()
 
     mqtt = MQTTClient()
-    archiver = Archiver()
-
     mqtt.start()
-    archiver.start()
 
     print("Servicio EDGE iniciado.")
 
@@ -25,7 +21,6 @@ def main():
             time.sleep(60)
     except KeyboardInterrupt:
         mqtt.stop()
-        archiver.stop()
 
 if __name__ == "__main__":
     main()
