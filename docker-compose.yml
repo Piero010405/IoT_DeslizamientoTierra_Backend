@@ -13,5 +13,4 @@ services:
     command: python scripts/sensor_data_sender.py
     env_file: .env
     restart: "no"
-    deploy:
-      replicas: 0
+    profiles: ["sim"]

@@ -82,10 +82,10 @@ sensor_simulator
 
 ## ▶️ 5. Ejecutar el envio de data simulado (opcional)
 
-Ejecuta scripts/sensor_data_sender.py
+Ejecuta el scripts/sensor_data_sender.py
 
 ```bash
-docker compose up sensor_simulator
+docker compose --profile sim up sensor_simulator
 ```
 
 Envía paquetes JSON cada 2 segundos al broker MQTT
