@@ -135,6 +135,176 @@ class Notifier:
 
         return "<br>".join(f"<p>{i}</p>" for i in insights)
 
+    def _progress_bar(self, value, color):
+        value = max(0, min(100, int(value)))  # clamp
+
+        return f"""
+        <div style="width:100%;background:#0d1117;height:10px;border-radius:4px;margin-top:4px;">
+            <div style="width:{value}%;height:10px;background:{color};border-radius:4px;"></div>
+        </div>
+        """
+
+    
+    def _format_payload_as_tables_and_visuals(self, payload):
+        seq = payload.get("seq")
+        alerta = payload.get("alerta")
+        ts = payload.get("ts")
+        samples = payload.get("samples", [])
+
+        alerta_txt = "Sí (1)" if alerta == 1 else "No (0)"
+
+        html = f"""
+        <h3 style="color:#32ff9b;">📋 Datos Generales</h3>
+        <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="border:1px solid #1f2933;padding:8px;">Secuencia</td>
+                <td style="border:1px solid #1f2933;padding:8px;">{seq}</td></tr>
+            <tr><td style="border:1px solid #1f2933;padding:8px;">Es alerta</td>
+                <td style="border:1px solid #1f2933;padding:8px;">{alerta_txt}</td></tr>
+            <tr><td style="border:1px solid #1f2933;padding:8px;">Timestamp</td>
+                <td style="border:1px solid #1f2933;padding:8px;">{ts}</td></tr>
+        </table>
+
+        <h3 style="color:#32ff9b;margin-top:30px;">🧪 Detalle por Sensor</h3>
+        """
+
+        for s in samples:
+            sid = s.get("id", "?")
+
+            soil = s.get("soil", {})
+            humid_pct = soil.get("pct", 0)
+
+            vib = s.get("vib", {})
+            vib_pulse = vib.get("pulse", 0)
+
+            tilt = s.get("tilt", 0)
+            hit = vib.get("hit", 0)
+
+            tilt_txt = "Inclinado (1)" if tilt == 1 else "Normal (0)"
+            hit_txt = "Sí (1)" if hit == 1 else "No (0)"
+
+            html += f"""
+            <div style="margin-top:25px;">
+                <h4 style="color:#72ffbf;">Sensor #{sid}</h4>
+
+                <table style="width:100%;border-collapse:collapse;">
+                    <tr>
+                        <td style="border:1px solid #1f2933;padding:8px;">Humedad (%)</td>
+                        <td style="border:1px solid #1f2933;padding:8px;">
+                            {humid_pct}%<br>
+                            {self._progress_bar(humid_pct, "#32ff9b")}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="border:1px solid #1f2933;padding:8px;">Vibración (pulse)</td>
+                        <td style="border:1px solid #1f2933;padding:8px;">
+                            {vib_pulse}<br>
+                            {self._progress_bar(min(vib_pulse/10,100), "#39c7ff")}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="border:1px solid #1f2933;padding:8px;">Inclinación (tilt)</td>
+                        <td style="border:1px solid #1f2933;padding:8px;">{tilt_txt}</td>
+                    </tr>
+
+                    <tr>
+                        <td style="border:1px solid #1f2933;padding:8px;">Impacto (hit)</td>
+                        <td style="border:1px solid #1f2933;padding:8px;">{hit_txt}</td>
+                    </tr>
+                </table>
+
+                <p style="color:#9ca3af;font-size:12px;margin-top:10px;">
+                    • <strong>pct:</strong> porcentaje de humedad estimado<br>
+                    • <strong>pulse:</strong> intensidad de vibración detectada<br>
+                    • <strong>tilt:</strong> 1 indica inclinación peligrosa<br>
+                    • <strong>hit:</strong> 1 indica impacto brusco<br>
+                </p>
+            </div>
+            """
+
+        return html
+
+    def _format_payload_as_tables_and_visuals(self, payload):
+        seq = payload.get("seq")
+        alerta = payload.get("alerta")
+        ts = payload.get("ts")
+        samples = payload.get("samples", [])
+
+        alerta_txt = "Sí (1)" if alerta == 1 else "No (0)"
+
+        html = f"""
+        <h3 style="color:#32ff9b;">📋 Datos Generales</h3>
+        <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="border:1px solid #1f2933;padding:8px;">Secuencia</td>
+                <td style="border:1px solid #1f2933;padding:8px;">{seq}</td></tr>
+            <tr><td style="border:1px solid #1f2933;padding:8px;">Es alerta</td>
+                <td style="border:1px solid #1f2933;padding:8px;">{alerta_txt}</td></tr>
+            <tr><td style="border:1px solid #1f2933;padding:8px;">Timestamp</td>
+                <td style="border:1px solid #1f2933;padding:8px;">{ts}</td></tr>
+        </table>
+
+        <h3 style="color:#32ff9b;margin-top:30px;">🧪 Detalle por Sensor</h3>
+        """
+
+        for s in samples:
+            sid = s.get("id", "?")
+
+            soil = s.get("soil", {})
+            humid_pct = soil.get("pct", 0)
+
+            vib = s.get("vib", {})
+            vib_pulse = vib.get("pulse", 0)
+
+            tilt = s.get("tilt", 0)
+            hit = vib.get("hit", 0)
+
+            tilt_txt = "Inclinado (1)" if tilt == 1 else "Normal (0)"
+            hit_txt = "Sí (1)" if hit == 1 else "No (0)"
+
+            html += f"""
+            <div style="margin-top:25px;">
+                <h4 style="color:#72ffbf;">Sensor #{sid}</h4>
+
+                <table style="width:100%;border-collapse:collapse;">
+                    <tr>
+                        <td style="border:1px solid #1f2933;padding:8px;">Humedad (%)</td>
+                        <td style="border:1px solid #1f2933;padding:8px;">
+                            {humid_pct}%<br>
+                            {self._progress_bar(humid_pct, "#32ff9b")}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="border:1px solid #1f2933;padding:8px;">Vibración (pulse)</td>
+                        <td style="border:1px solid #1f2933;padding:8px;">
+                            {vib_pulse}<br>
+                            {self._progress_bar(min(vib_pulse/10,100), "#39c7ff")}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="border:1px solid #1f2933;padding:8px;">Inclinación (tilt)</td>
+                        <td style="border:1px solid #1f2933;padding:8px;">{tilt_txt}</td>
+                    </tr>
+
+                    <tr>
+                        <td style="border:1px solid #1f2933;padding:8px;">Impacto (hit)</td>
+                        <td style="border:1px solid #1f2933;padding:8px;">{hit_txt}</td>
+                    </tr>
+                </table>
+
+                <p style="color:#9ca3af;font-size:12px;margin-top:10px;">
+                    • <strong>pct:</strong> porcentaje de humedad estimado<br>
+                    • <strong>pulse:</strong> intensidad de vibración detectada<br>
+                    • <strong>tilt:</strong> 1 indica inclinación peligrosa<br>
+                    • <strong>hit:</strong> 1 indica impacto brusco<br>
+                </p>
+            </div>
+            """
+
+        return html
+
 
     def enqueue_alert(self, alert_payload):
         """
@@ -157,62 +327,69 @@ class Notifier:
             return False
 
         subject = f"⚠️ Alerta detectada — paquete seq={seq}"
+
+         # Render datos en tabla + barras visuales
+        pretty_tables = self._format_payload_as_tables_and_visuals(alert_payload)
+
         html_body = f"""
-        <table width="100%" cellpadding="0" cellspacing="0" 
-            style="background:#0b0f14;padding:20px;font-family:Arial,Helvetica,sans-serif;color:#e6e6e6;">
-        <tr>
-            <td align="center">
-            <table width="600" cellpadding="0" cellspacing="0" 
-                    style="background:#141a22;border-radius:12px;overflow:hidden;border:1px solid #1f2933;">
-                
-                <!-- Header -->
-                <tr>
-                <td style="background:#0d1218;padding:20px;text-align:center;">
-                    <h1 style="margin:0;font-size:24px;color:#32ff9b;">
-                    ⚠️ Alerta de Monitoreo — Instituto Geofísico del Perú
-                    </h1>
-                    <p style="margin:8px 0 0;color:#9ca3af;font-size:13px;">
-                    Sistema de vigilancia de deslizamientos en tiempo real
-                    </p>
+            <table width="100%" cellpadding="0" cellspacing="0" 
+                style="background:#0b0f14;padding:20px;font-family:Arial,Helvetica,sans-serif;color:#e6e6e6;">
+            <tr>
+                <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" 
+                        style="background:#141a22;border-radius:12px;overflow:hidden;border:1px solid #1f2933;">
+                    
+                    <!-- Header -->
+                    <tr>
+                    <td style="background:#0d1218;padding:20px;text-align:center;">
+                        <h1 style="margin:0;font-size:24px;color:#32ff9b;">
+                        ⚠️ Alerta de Monitoreo — Instituto Geofísico del Perú
+                        </h1>
+                        <p style="margin:8px 0 0;color:#9ca3af;font-size:13px;">
+                        Sistema de vigilancia de deslizamientos en tiempo real
+                        </p>
+                    </td>
+                    </tr>
+
+                    <!-- ALERTA ROJA -->
+                    <tr>
+                    <td style="padding:18px;background:#2b0f12;border-left:4px solid #ff4d4d;">
+                        <p style="margin:0;font-size:15px;color:#ff9999;">
+                        ⚠️ <strong>ALERTA CRÍTICA:</strong> Se han detectado condiciones que podrían indicar riesgo de deslizamiento.
+                        </p>
+                    </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                    <td style="padding:25px;color:#e5e5e5;font-size:15px;line-height:1.5;">
+
+                        <h2 style="color:#32ff9b;margin-top:0;">Detalles de la alerta</h2>
+
+                        <p><strong>Secuencia:</strong> {seq}</p>
+                        <p><strong>Timestamp:</strong> {ts}</p>
+
+                        <!-- Insights -->
+                        <div style="margin-top:20px;padding:15px;background:#1d242d;border-left:4px solid #32ff9b;border-radius:6px;">
+                        <h3 style="margin-top:0;color:#32ff9b;">🔍 Análisis rápido del evento</h3>
+                        {self._generate_insights(alert_payload)}
+                        </div>
+
+                        <h3 style="color:#32ff9b;margin-top:30px;">📊 Resumen del paquete (estilo dashboard)</h3>
+
+                        {pretty_tables}
+
+                        <p style="color:#6b7280;font-size:13px;margin-top:20px;text-align:center;">
+                        Enviado automáticamente por el sistema EDGE IoT — Proyecto de Monitoreo de Deslizamientos
+                        </p>
+                    </td>
+                    </tr>
+
+                </table>
                 </td>
-                </tr>
-
-                <!-- Body -->
-                <tr>
-                <td style="padding:25px;color:#e5e5e5;font-size:15px;line-height:1.5;">
-                    <h2 style="color:#32ff9b;margin-top:0;">Detalles de la alerta</h2>
-
-                    <p><strong>Secuencia:</strong> {seq}</p>
-                    <p><strong>Timestamp:</strong> {ts}</p>
-
-                    <!-- Insights -->
-                    <div style="margin-top:20px;padding:15px;background:#1d242d;border-left:4px solid #32ff9b;border-radius:6px;">
-                    <h3 style="margin-top:0;color:#32ff9b;">🔍 Análisis rápido del evento</h3>
-                    {self._generate_insights(alert_payload)}
-                    </div>
-
-                    <h3 style="color:#32ff9b;margin-top:30px;">📦 Datos completos del paquete</h3>
-                    <pre style="
-                    background:#0d1117;
-                    color:#8affc7;
-                    padding:16px;
-                    border-radius:8px;
-                    font-size:13px;
-                    line-height:1.4;
-                    white-space:pre-wrap;
-                    ">{json.dumps(alert_payload, indent=2)}</pre>
-
-                    <p style="color:#6b7280;font-size:13px;margin-top:20px;text-align:center;">
-                    Enviado automáticamente por el sistema EDGE IoT — Proyecto de Monitoreo de Deslizamientos
-                    </p>
-                </td>
-                </tr>
-
+            </tr>
             </table>
-            </td>
-        </tr>
-        </table>
-        """
+            """
 
 
         sent = self.send_email(subject, html_body)
