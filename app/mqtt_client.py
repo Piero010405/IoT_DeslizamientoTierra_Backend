@@ -52,8 +52,9 @@ class MQTTClient:
             samples = payload["samples"]
 
             # Timestamp REAL generado en backend
-            ts = datetime.now(timezone.utc)
-            payload["ts"] = ts.isoformat()
+            ts = datetime.now(timezone.utc).replace(microsecond=0)
+            timestamp_str = ts.isoformat().replace("+00:00", "Z")
+            payload["ts"] = timestamp_str
 
         except KeyError as e:
             logger.error(f"⚠ Payload inválido, falta campo: {e}")
