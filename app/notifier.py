@@ -375,7 +375,7 @@ class Notifier:
                         {self._generate_insights(alert_payload)}
                         </div>
 
-                        <h3 style="color:#32ff9b;margin-top:30px;">📊 Resumen del paquete (estilo dashboard)</h3>
+                        <h3 style="color:#32ff9b;margin-top:30px;">📊 Resumen del paquete</h3>
 
                         {pretty_tables}
 
