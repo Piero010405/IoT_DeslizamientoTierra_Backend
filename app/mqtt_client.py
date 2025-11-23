@@ -60,6 +60,12 @@ class MQTTClient:
         # ============
         # GUARDAR EN REDIS
         # ============
+        try:
+            # guardamos seq y ts y opcionalmente el payload reducido
+            self.cache.guardar_ultimo_paquete(seq, payload["ts"], payload)
+        except Exception as e:
+            logger.error(f"⚠ Error guardando último paquete en Redis → {e}")
+            
         for sample in samples:
             sid = str(sample["id"])
 

@@ -180,6 +180,27 @@ class SensorCacheManager:
 
         return True
 
+    # ============ ÚLTIMO PAQUETE RECIBIDO ============
+
+    def guardar_ultimo_paquete(self, seq: int, timestamp: str, payload: dict = None):
+        """
+        Guarda un registro del último paquete recibido.
+        Key: sensor:last_packet -> JSON { seq, ts, payload? }
+        TTL se mantiene igual que histórico para que expire pasado X tiempo.
+        """
+        try:
+            key = "sensor:last_packet"
+            obj = {
+                "seq": int(seq),
+                "ts": timestamp
+            }
+            if payload is not None:
+                obj["payload"] = payload
+            self.redis_client.setex(key, self.TTL_HISTORICO_RECIENTE, json.dumps(obj))
+            return True
+        except Exception:
+            return False
+
     # ============ CONSULTAS ============
 
     def obtener_estado_actual(self, sensor_id: str, tipo_sensor: str) -> Optional[Dict]:
