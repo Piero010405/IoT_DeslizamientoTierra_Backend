@@ -51,8 +51,9 @@ class MQTTClient:
             alerta = int(payload["alerta"])
             samples = payload["samples"]
 
-            # ✅ Timestamp REAL generado en backend
+            # Timestamp REAL generado en backend
             ts = datetime.now(timezone.utc)
+            payload["ts"] = ts.isoformat()
 
         except KeyError as e:
             logger.error(f"⚠ Payload inválido, falta campo: {e}")
@@ -64,8 +65,8 @@ class MQTTClient:
         try:
             self.cache.guardar_ultimo_paquete(
                 seq=seq,
-                ts=ts.isoformat(),
-                payload=payload  # opcional mantener la estructura original
+                timestamp=ts.isoformat(),
+                payload=payload
             )
         except Exception as e:
             logger.error(f"⚠ Error guardando último paquete en Redis → {e}")
