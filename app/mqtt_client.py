@@ -52,8 +52,8 @@ class MQTTClient:
             samples = payload["samples"]
 
             # Timestamp REAL generado en backend
-            ts = datetime.now(timezone.utc).replace(microsecond=0)
-            timestamp_str = ts.isoformat().replace("+00:00", "Z")
+            ts = datetime.now()   # hora local sin timezone
+            timestamp_str = ts.strftime("%Y-%m-%d %H:%M:%S")
             payload["ts"] = timestamp_str
 
         except KeyError as e:
@@ -66,7 +66,7 @@ class MQTTClient:
         try:
             self.cache.guardar_ultimo_paquete(
                 seq=seq,
-                timestamp=ts.isoformat(),
+                timestamp=timestamp_str,
                 payload=payload
             )
         except Exception as e:
