@@ -2,7 +2,7 @@
 import json
 import logging
 import paho.mqtt.client as mqtt
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.config import settings
 from app.cache_manager import CloudSensorCacheManager
@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 class MQTTClient:
     def __init__(self):
 
-        # Cliente sin client_id (se genera automáticamente)
         self.client = mqtt.Client(
             client_id="edge_app",
             clean_session=False
@@ -35,7 +34,6 @@ class MQTTClient:
         else:
             logger.error(f"[MQTT] Error de conexión rc={rc}")
 
-        # Te suscribes al topic raíz (tus sensores publican ahí)
         client.subscribe(settings.MQTT_TOPIC_PREFIX, qos=1)
 
     # ============
@@ -51,21 +49,30 @@ class MQTTClient:
         try:
             seq = payload["seq"]
             alerta = int(payload["alerta"])
-            ts = datetime.fromisoformat(payload["ts"])
             samples = payload["samples"]
+
+            # ✅ Timestamp REAL generado en backend
+            ts = datetime.now(timezone.utc)
+
         except KeyError as e:
             logger.error(f"⚠ Payload inválido, falta campo: {e}")
             return
 
         # ============
-        # GUARDAR EN REDIS
+        # GUARDAR ÚLTIMO PAQUETE EN REDIS
         # ============
         try:
-            # guardamos seq y ts y opcionalmente el payload reducido
-            self.cache.guardar_ultimo_paquete(seq, payload["ts"], payload)
+            self.cache.guardar_ultimo_paquete(
+                seq=seq,
+                ts=ts.isoformat(),
+                payload=payload  # opcional mantener la estructura original
+            )
         except Exception as e:
             logger.error(f"⚠ Error guardando último paquete en Redis → {e}")
-            
+
+        # ============
+        # GUARDAR SENSORES EN REDIS (humedad, inclinación, vibración)
+        # ============
         for sample in samples:
             sid = str(sample["id"])
 
@@ -132,10 +139,12 @@ class MQTTClient:
         # ============
         try:
             if alerta == 1:
-                # 1) Guardar alerta en Redis
-                self.cache.guardar_alerta(seq, payload["ts"], payload)
+                self.cache.guardar_alerta(
+                    seq=seq,
+                    ts=ts.isoformat(),
+                    payload=payload
+                )
 
-                # 2) Enviar email con cooldown}
                 from app.notifier import Notifier
                 Notifier().enqueue_alert(payload)
 
