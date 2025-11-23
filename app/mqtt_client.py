@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from app.config import settings
 from app.cache_manager import CloudSensorCacheManager
 from app.db.client import SessionLocal
-from app.db.models import SensorPacket, SensorPanel
+from app.db.models import SensorPacket, SensorSample
 
 logger = logging.getLogger(__name__)
 
@@ -113,20 +113,25 @@ class MQTTClient:
                 p = SensorPacket(
                     seq=seq,
                     timestamp=ts,
-                    alerta=bool(alerta)
+                    alerta=bool(alerta),
+                    created_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(timezone.utc)
                 )
                 db.add(p)
                 db.flush()
 
                 for sample in samples:
-                    panel = SensorPanel(
+                    now = datetime.now(timezone.utc)
+                    panel = SensorSample(
                         sample_id=sample["id"],
                         soil_raw=sample["soil"]["raw"],
                         soil_pct=sample["soil"]["pct"],
                         tilt=sample["tilt"],
                         vib_pulse=sample["vib"]["pulse"],
                         vib_hit=sample["vib"]["hit"],
-                        packet_id=p.id
+                        packet_id=p.id,
+                        created_at=now,
+                        updated_at=now
                     )
                     db.add(panel)
 
