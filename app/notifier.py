@@ -43,11 +43,11 @@ class Notifier:
 
         return [value]
 
-    def _can_send(self, alert_key):
+    def _can_send(self):
         """
-        Devuelve True si han pasado más de N segundos desde el último envío de esta alerta.
+        Devuelve True si han pasado más de N segundos desde la última alerta enviada.
         """
-        redis_key = f"alert:sent:{alert_key}"
+        redis_key = "alert:last_sent"
         last_ts = self.redis.get(redis_key)
 
         if last_ts is None:
@@ -56,18 +56,23 @@ class Notifier:
         try:
             last_ts = float(last_ts)
         except ValueError:
-            return True  # Valor corrupto → permitir envío
+            return True  # si algo raro ocurrió
 
         now = time.time()
-        if now - last_ts < self.cooldown:
-            logger.info(f"[NOTIFIER] Cooldown activo para {alert_key}")
+
+        # Diferencia en segundos
+        diff = now - last_ts
+        if diff < self.cooldown:
+            logger.info(f"[NOTIFIER] Cooldown activo ({int(self.cooldown - diff)}s restantes)")
             return False
 
         return True
 
-    def _mark_sent(self, alert_key):
-        redis_key = f"alert:sent:{alert_key}"
-        self.redis.setex(redis_key, self.cooldown, str(time.time()))
+
+    def _mark_sent(self):
+        """Marca el timestamp del último correo enviado."""
+        redis_key = "alert:last_sent"
+        self.redis.set(redis_key, str(time.time()))
 
     # ======================================================
     # Email Sender
@@ -148,9 +153,7 @@ class Notifier:
             logger.error("[NOTIFIER] Payload de alerta inválido: falta seq o ts")
             return False
 
-        alert_key = f"{seq}:{ts}"
-
-        if not self._can_send(alert_key):
+        if not self._can_send():
             return False
 
         subject = f"⚠️ Alerta detectada — paquete seq={seq}"
@@ -215,6 +218,6 @@ class Notifier:
         sent = self.send_email(subject, html_body)
 
         if sent:
-            self._mark_sent(alert_key)
+            self._mark_sent()
 
         return sent
